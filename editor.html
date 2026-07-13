@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L News 編輯後台</title>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F5EEE1; --surface:#FFFCF5; --ink:#2C2620; --ink-soft:#6E6355;
+    --line:#E2D7C2; --coral:#E2795A; --teal:#3F7C74; --danger:#C0392B; --ok:#3F7C74;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    background:var(--bg); color:var(--ink); font-family:'Work Sans',sans-serif;
+    max-width:760px; margin:0 auto; padding:32px 20px 100px; line-height:1.5;
+  }
+  h1{ font-size:22px; margin-bottom:4px; }
+  .sub{ color:var(--ink-soft); font-size:13px; margin-bottom:28px; }
+  section{
+    background:var(--surface); border:1px solid var(--line); border-radius:14px;
+    padding:20px 22px; margin-bottom:20px;
+  }
+  section h2{ font-size:16px; margin-bottom:14px; }
+  label{ display:block; font-size:13px; font-weight:600; margin:12px 0 5px; }
+  label:first-of-type{ margin-top:0; }
+  input[type=text], textarea, input[type=password]{
+    width:100%; border:1px solid var(--line); border-radius:8px; padding:9px 11px;
+    font-family:inherit; font-size:14px; background:#fff; color:var(--ink);
+  }
+  textarea{ resize:vertical; min-height:64px; }
+  .row{ display:flex; gap:12px; }
+  .row > div{ flex:1; }
+  .card-editor{
+    border:1px dashed var(--line); border-radius:10px; padding:14px; margin-bottom:12px;
+    position:relative;
+  }
+  .card-editor .del{
+    position:absolute; top:10px; right:10px; background:none; border:none;
+    color:var(--danger); font-size:12px; cursor:pointer; font-weight:600;
+  }
+  .checkbox-row{ display:flex; align-items:center; gap:8px; margin-top:10px; }
+  .checkbox-row input{ width:auto; }
+  .checkbox-row label{ margin:0; font-weight:400; }
+  .thumb{ margin-top:8px; max-width:160px; border-radius:8px; display:block; }
+  button.add{
+    background:none; border:1px dashed var(--teal); color:var(--teal); font-weight:600;
+    padding:8px 14px; border-radius:8px; cursor:pointer; font-size:13px;
+  }
+  .tabbar{ display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
+  .tabbar button{
+    border:1px solid var(--line); background:#fff; padding:7px 14px; border-radius:999px;
+    font-size:13px; font-weight:600; cursor:pointer; color:var(--ink-soft);
+  }
+  .tabbar button.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+  .publish-bar{
+    position:sticky; bottom:0; background:var(--bg); padding:14px 0; border-top:1px solid var(--line);
+    display:flex; align-items:center; gap:14px; margin-top:10px;
+  }
+  .publish-bar button{
+    background:var(--coral); color:#fff; border:none; padding:12px 26px; border-radius:999px;
+    font-size:15px; font-weight:700; cursor:pointer;
+  }
+  .publish-bar button:disabled{ opacity:0.5; cursor:default; }
+  #status{ font-size:13px; color:var(--ink-soft); }
+  #status.ok{ color:var(--ok); font-weight:600; }
+  #status.err{ color:var(--danger); font-weight:600; }
+  details{ font-size:12.5px; color:var(--ink-soft); margin-top:6px; }
+</style>
+</head>
+<body>
+
+<h1>L News 編輯後台</h1>
+<p class="sub">在這裡編輯內容，按最下方「發布更新」就會直接更新到你的網站。</p>
+
+<section>
+  <h2>連線設定</h2>
+  <label>GitHub Personal Access Token</label>
+  <input type="password" id="token" placeholder="貼上你的 token（只會存在你自己的瀏覽器）">
+  <details>
+    <summary>第一次用？點這裡看怎麼拿 token</summary>
+    到 GitHub 右上角頭像 → Settings → 左側最下方 Developer settings → Personal access tokens →
+    Fine-grained tokens → Generate new token。Repository access 選「Only select repositories」揀你的
+    Lnewshk，Permissions 裡的 Contents 設做「Read and write」，其他保持預設，生成後複製貼上面。
+    這組 token 只存在你自己電腦的瀏覽器裡，不會上傳到任何地方。
+  </details>
+  <div class="row">
+    <div>
+      <label>GitHub 帳號</label>
+      <input type="text" id="owner" value="Lokhknews">
+    </div>
+    <div>
+      <label>Repository 名稱</label>
+      <input type="text" id="repo" value="Lnewshk">
+    </div>
+  </div>
+  <div style="margin-top:14px">
+    <button class="add" id="loadBtn" type="button">載入目前網站內容</button>
+    <span id="loadStatus" style="font-size:12.5px;color:var(--ink-soft);margin-left:10px"></span>
+  </div>
+</section>
+
+<section>
+  <h2>首頁焦點（Hero）</h2>
+  <label>眉題（例如「今日焦點」「今日熱話」）</label>
+  <input type="text" id="h-eyebrow">
+  <label>標題</label>
+  <input type="text" id="h-title">
+  <label>摘要</label>
+  <textarea id="h-summary"></textarea>
+  <div class="row">
+    <div><label>時間</label><input type="text" id="h-time"></div>
+    <div><label>來源</label><input type="text" id="h-source"></div>
+  </div>
+  <label>配圖（不選則用預設插畫）</label>
+  <input type="file" id="h-image" accept="image/*">
+  <img id="h-image-preview" class="thumb" style="display:none">
+  <button class="add" id="h-image-clear" type="button" style="margin-top:8px">移除已選圖片</button>
+</section>
+
+<section>
+  <h2>新聞卡片</h2>
+  <div class="tabbar" id="catTabs">
+    <button data-cat="hk" class="active">香港新聞</button>
+    <button data-cat="world">世界新聞</button>
+    <button data-cat="fun">趣聞</button>
+    <button data-cat="stock">美股速遞</button>
+    <button data-cat="football">足球</button>
+  </div>
+  <div id="cardList"></div>
+  <button class="add" id="addCardBtn" type="button">+ 新增一張卡片</button>
+</section>
+
+<div class="publish-bar">
+  <button id="publishBtn" type="button">發布更新</button>
+  <span id="status"></span>
+</div>
+
+<script>
+  const CAT_NAMES = { hk:'香港新聞', world:'世界新聞', fun:'趣聞', stock:'美股速遞', football:'足球' };
+  let CONTENT = { hero:{eyebrow:'',title:'',summary:'',time:'',source:'',image:''}, categories:{hk:[],world:[],fun:[],stock:[],football:[]} };
+  let currentCat = 'hk';
+
+  function utf8ToBase64(str){ return btoa(unescape(encodeURIComponent(str))); }
+  function base64ToUtf8(str){ return decodeURIComponent(escape(atob(str))); }
+
+  function fileToResizedBase64(file, maxWidth){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(1, maxWidth / img.width);
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function fillHeroForm(){
+    document.getElementById('h-eyebrow').value = CONTENT.hero.eyebrow || '';
+    document.getElementById('h-title').value = CONTENT.hero.title || '';
+    document.getElementById('h-summary').value = CONTENT.hero.summary || '';
+    document.getElementById('h-time').value = CONTENT.hero.time || '';
+    document.getElementById('h-source').value = CONTENT.hero.source || '';
+    const prev = document.getElementById('h-image-preview');
+    if(CONTENT.hero.image){ prev.src = CONTENT.hero.image; prev.style.display='block'; }
+    else { prev.style.display='none'; }
+  }
+
+  function readHeroForm(){
+    CONTENT.hero.eyebrow = document.getElementById('h-eyebrow').value;
+    CONTENT.hero.title = document.getElementById('h-title').value;
+    CONTENT.hero.summary = document.getElementById('h-summary').value;
+    CONTENT.hero.time = document.getElementById('h-time').value;
+    CONTENT.hero.source = document.getElementById('h-source').value;
+  }
+
+  document.getElementById('h-image').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const dataUrl = await fileToResizedBase64(file, 1000);
+    CONTENT.hero.image = dataUrl;
+    const prev = document.getElementById('h-image-preview');
+    prev.src = dataUrl; prev.style.display='block';
+  });
+  document.getElementById('h-image-clear').addEventListener('click', () => {
+    CONTENT.hero.image = '';
+    document.getElementById('h-image-preview').style.display='none';
+    document.getElementById('h-image').value = '';
+  });
+
+  function renderCardList(){
+    readCardListIntoContent();
+    const list = document.getElementById('cardList');
+    list.innerHTML = '';
+    const items = CONTENT.categories[currentCat] || [];
+    items.forEach((item, idx) => {
+      const div = document.createElement('div');
+      div.className = 'card-editor';
+      div.dataset.idx = idx;
+      div.innerHTML = `
+        <button type="button" class="del" data-idx="${idx}">刪除</button>
+        <label>標題</label>
+        <input type="text" class="f-title" value="${(item.title||'').replace(/"/g,'&quot;')}">
+        <div class="row">
+          <div><label>時間</label><input type="text" class="f-time" value="${(item.time||'').replace(/"/g,'&quot;')}"></div>
+          <div><label>來源</label><input type="text" class="f-source" value="${(item.source||'').replace(/"/g,'&quot;')}"></div>
+        </div>
+        <label>摘要</label>
+        <textarea class="f-summary">${item.summary||''}</textarea>
+        <label>配圖（不選則用該分類預設插畫）</label>
+        <input type="file" class="f-image" accept="image/*">
+        <img class="thumb f-image-preview" style="display:${item.image?'block':'none'}" src="${item.image||''}">
+        <div class="checkbox-row">
+          <input type="checkbox" class="f-analysis" ${item.analysis?'checked':''}>
+          <label>標記為「署名分析」</label>
+        </div>
+      `;
+      list.appendChild(div);
+    });
+  }
+
+  function readCardListIntoContent(){
+    const list = document.getElementById('cardList');
+    const editors = list.querySelectorAll('.card-editor');
+    const items = [];
+    editors.forEach(div => {
+      items.push({
+        title: div.querySelector('.f-title')?.value || '',
+        time: div.querySelector('.f-time')?.value || '',
+        source: div.querySelector('.f-source')?.value || '',
+        summary: div.querySelector('.f-summary')?.value || '',
+        analysis: div.querySelector('.f-analysis')?.checked || false,
+        image: div.querySelector('.f-image-preview')?.src && div.querySelector('.f-image-preview').style.display!=='none'
+          ? div.querySelector('.f-image-preview').src : ''
+      });
+    });
+    CONTENT.categories[currentCat] = items;
+  }
+
+  document.getElementById('cardList').addEventListener('change', async (e) => {
+    if(e.target.classList.contains('f-image')){
+      const file = e.target.files[0];
+      if(!file) return;
+      const dataUrl = await fileToResizedBase64(file, 900);
+      const wrap = e.target.closest('.card-editor');
+      const prev = wrap.querySelector('.f-image-preview');
+      prev.src = dataUrl; prev.style.display='block';
+    }
+  });
+
+  document.getElementById('cardList').addEventListener('click', (e) => {
+    if(e.target.classList.contains('del')){
+      readCardListIntoContent();
+      const idx = parseInt(e.target.dataset.idx, 10);
+      CONTENT.categories[currentCat].splice(idx, 1);
+      renderCardList();
+    }
+  });
+
+  document.getElementById('addCardBtn').addEventListener('click', () => {
+    readCardListIntoContent();
+    CONTENT.categories[currentCat].push({ title:'', time:'', source:'', summary:'', analysis:false, image:'' });
+    renderCardList();
+  });
+
+  document.getElementById('catTabs').addEventListener('click', (e) => {
+    if(e.target.tagName !== 'BUTTON') return;
+    readCardListIntoContent();
+    document.querySelectorAll('#catTabs button').forEach(b=>b.classList.remove('active'));
+    e.target.classList.add('active');
+    currentCat = e.target.dataset.cat;
+    renderCardList();
+  });
+
+  function api(owner, repo){ return `https://api.github.com/repos/${owner}/${repo}/contents/content.json`; }
+
+  document.getElementById('loadBtn').addEventListener('click', async () => {
+    const owner = document.getElementById('owner').value.trim();
+    const repo = document.getElementById('repo').value.trim();
+    const statusEl = document.getElementById('loadStatus');
+    statusEl.textContent = '載入中…';
+    try{
+      const res = await fetch(`./content.json?_=${Date.now()}`);
+      if(!res.ok) throw new Error('找不到 content.json');
+      CONTENT = await res.json();
+      fillHeroForm();
+      renderCardList();
+      statusEl.textContent = '已載入目前內容';
+    } catch(err){
+      statusEl.textContent = '載入失敗：' + err.message;
+    }
+  });
+
+  document.getElementById('publishBtn').addEventListener('click', async () => {
+    const token = document.getElementById('token').value.trim();
+    const owner = document.getElementById('owner').value.trim();
+    const repo = document.getElementById('repo').value.trim();
+    const statusEl = document.getElementById('status');
+    const btn = document.getElementById('publishBtn');
+    if(!token){ statusEl.textContent = '請先貼上 token'; statusEl.className='err'; return; }
+
+    readHeroForm();
+    readCardListIntoContent();
+
+    btn.disabled = true;
+    statusEl.className = '';
+    statusEl.textContent = '發布中…';
+
+    try{
+      let sha;
+      const getRes = await fetch(api(owner, repo), { headers:{ Authorization:`Bearer ${token}` } });
+      if(getRes.ok){ const d = await getRes.json(); sha = d.sha; }
+
+      const body = {
+        message: '透過編輯後台更新內容',
+        content: utf8ToBase64(JSON.stringify(CONTENT, null, 2)),
+        branch: 'main'
+      };
+      if(sha) body.sha = sha;
+
+      const putRes = await fetch(api(owner, repo), {
+        method: 'PUT',
+        headers: { Authorization:`Bearer ${token}`, 'Content-Type':'application/json' },
+        body: JSON.stringify(body)
+      });
+      if(!putRes.ok){
+        const err = await putRes.json();
+        throw new Error(err.message || '發布失敗');
+      }
+      statusEl.className = 'ok';
+      statusEl.textContent = '已發布！約 1 分鐘後網站會更新。';
+    } catch(err){
+      statusEl.className = 'err';
+      statusEl.textContent = '發布失敗：' + err.message;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  fillHeroForm();
+  renderCardList();
+</script>
+
+</body>
+</html>
