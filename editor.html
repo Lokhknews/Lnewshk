@@ -39,9 +39,7 @@
     position:absolute; top:10px; right:10px; background:none; border:none;
     color:var(--danger); font-size:12px; cursor:pointer; font-weight:600;
   }
-  .checkbox-row{ display:flex; align-items:center; gap:8px; margin-top:10px; }
-  .checkbox-row input{ width:auto; }
-  .checkbox-row label{ margin:0; font-weight:400; }
+  .hint{ font-size:12px; color:var(--ink-soft); margin-top:4px; }
   .thumb{ margin-top:8px; max-width:160px; border-radius:8px; display:block; }
   button.add{
     background:none; border:1px dashed var(--teal); color:var(--teal); font-weight:600;
@@ -66,12 +64,21 @@
   #status.ok{ color:var(--ok); font-weight:600; }
   #status.err{ color:var(--danger); font-weight:600; }
   details{ font-size:12.5px; color:var(--ink-soft); margin-top:6px; }
+  .notice{
+    background:#FFF4EC; border:1px solid #F0D0BC; border-radius:10px;
+    padding:12px 14px; font-size:13px; color:var(--ink-soft); margin-bottom:20px;
+  }
 </style>
 </head>
 <body>
 
 <h1>L News 編輯後台</h1>
-<p class="sub">在這裡編輯內容，按最下方「發布更新」就會直接更新到你的網站。</p>
+<p class="sub">編輯轉載的 X 貼文；按最下方「發布更新」會寫入 GitHub 的 content.json。</p>
+
+<div class="notice">
+  每則貼文請填<strong>作者、@handle、X 原文連結、中文翻譯</strong>。
+  前台會清楚標示「轉載自 X」，不會當成原創。Hero 首頁焦點請在下方自行維護。
+</div>
 
 <section>
   <h2>連線設定</h2>
@@ -101,8 +108,8 @@
 </section>
 
 <section>
-  <h2>首頁焦點（Hero）</h2>
-  <label>眉題（例如「今日焦點」「今日熱話」）</label>
+  <h2>首頁焦點（Hero）— 由你自行負責</h2>
+  <label>眉題（例如「今日焦點」）</label>
   <input type="text" id="h-eyebrow">
   <label>標題</label>
   <input type="text" id="h-title">
@@ -112,6 +119,8 @@
     <div><label>時間</label><input type="text" id="h-time"></div>
     <div><label>來源</label><input type="text" id="h-source"></div>
   </div>
+  <label>連結（可選）</label>
+  <input type="text" id="h-link" placeholder="https://...">
   <label>配圖（不選則用預設插畫）</label>
   <input type="file" id="h-image" accept="image/*">
   <img id="h-image-preview" class="thumb" style="display:none">
@@ -119,16 +128,16 @@
 </section>
 
 <section>
-  <h2>新聞卡片</h2>
+  <h2>X 貼文卡片（轉載）</h2>
   <div class="tabbar" id="catTabs">
-    <button data-cat="hk" class="active">香港新聞</button>
-    <button data-cat="world">世界新聞</button>
+    <button data-cat="hk" class="active">香港</button>
+    <button data-cat="world">世界</button>
     <button data-cat="fun">趣聞</button>
-    <button data-cat="stock">美股速遞</button>
+    <button data-cat="stock">美股</button>
     <button data-cat="football">足球</button>
   </div>
   <div id="cardList"></div>
-  <button class="add" id="addCardBtn" type="button">+ 新增一張卡片</button>
+  <button class="add" id="addCardBtn" type="button">+ 新增一則轉載</button>
 </section>
 
 <div class="publish-bar">
@@ -137,8 +146,16 @@
 </div>
 
 <script>
-  const CAT_NAMES = { hk:'香港新聞', world:'世界新聞', fun:'趣聞', stock:'美股速遞', football:'足球' };
-  let CONTENT = { hero:{eyebrow:'',title:'',summary:'',time:'',source:'',image:''}, categories:{hk:[],world:[],fun:[],stock:[],football:[]} };
+  const CAT_NAMES = { hk:'香港', world:'世界', fun:'趣聞', stock:'美股', football:'足球' };
+  let CONTENT = {
+    meta: {
+      site_tagline: '轉載 X 上的重要貼文 · 附中文翻譯',
+      disclaimer: '本站內容為轉載與中文翻譯，非原創報導。版權歸原作者所有。',
+      updated_at: ''
+    },
+    hero: { eyebrow:'', title:'', summary:'', time:'', source:'', image:'', link:'' },
+    categories: { hk:[], world:[], fun:[], stock:[], football:[] }
+  };
   let currentCat = 'hk';
 
   function utf8ToBase64(str){ return btoa(unescape(encodeURIComponent(str))); }
@@ -166,23 +183,56 @@
     });
   }
 
+  function escAttr(s){
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  }
+
+  /** 從 x.com / twitter.com 連結粗解析 handle 與 status id */
+  function parseXUrl(url){
+    const m = String(url || '').match(/(?:x\.com|twitter\.com)\/([A-Za-z0-9_]+)\/status\/(\d+)/i);
+    if(!m) return null;
+    return { handle: m[1], statusId: m[2] };
+  }
+
+  function emptyPost(){
+    return {
+      id: '',
+      author_name: '',
+      author_handle: '',
+      author_avatar: '',
+      x_url: '',
+      posted_at: '',
+      time_display: '',
+      title: '',
+      translation_zh: '',
+      image: '',
+      tags: [],
+      note: '',
+      attribution: '轉載自 X'
+    };
+  }
+
   function fillHeroForm(){
-    document.getElementById('h-eyebrow').value = CONTENT.hero.eyebrow || '';
-    document.getElementById('h-title').value = CONTENT.hero.title || '';
-    document.getElementById('h-summary').value = CONTENT.hero.summary || '';
-    document.getElementById('h-time').value = CONTENT.hero.time || '';
-    document.getElementById('h-source').value = CONTENT.hero.source || '';
+    const h = CONTENT.hero || {};
+    document.getElementById('h-eyebrow').value = h.eyebrow || '';
+    document.getElementById('h-title').value = h.title || '';
+    document.getElementById('h-summary').value = h.summary || '';
+    document.getElementById('h-time').value = h.time || '';
+    document.getElementById('h-source').value = h.source || '';
+    document.getElementById('h-link').value = h.link || '';
     const prev = document.getElementById('h-image-preview');
-    if(CONTENT.hero.image){ prev.src = CONTENT.hero.image; prev.style.display='block'; }
+    if(h.image){ prev.src = h.image; prev.style.display='block'; }
     else { prev.style.display='none'; }
   }
 
   function readHeroForm(){
+    CONTENT.hero = CONTENT.hero || {};
     CONTENT.hero.eyebrow = document.getElementById('h-eyebrow').value;
     CONTENT.hero.title = document.getElementById('h-title').value;
     CONTENT.hero.summary = document.getElementById('h-summary').value;
     CONTENT.hero.time = document.getElementById('h-time').value;
     CONTENT.hero.source = document.getElementById('h-source').value;
+    CONTENT.hero.link = document.getElementById('h-link').value.trim();
   }
 
   document.getElementById('h-image').addEventListener('change', async (e) => {
@@ -202,28 +252,47 @@
   function renderCardList(){
     const list = document.getElementById('cardList');
     list.innerHTML = '';
-    const items = CONTENT.categories[currentCat] || [];
+    if(!CONTENT.categories[currentCat]) CONTENT.categories[currentCat] = [];
+    const items = CONTENT.categories[currentCat];
     items.forEach((item, idx) => {
       const div = document.createElement('div');
       div.className = 'card-editor';
       div.dataset.idx = idx;
+      const handle = (item.author_handle || '').replace(/^@/, '');
       div.innerHTML = `
         <button type="button" class="del" data-idx="${idx}">刪除</button>
-        <label>標題</label>
-        <input type="text" class="f-title" value="${(item.title||'').replace(/"/g,'&quot;')}">
+        <label>X 原文連結（必填）</label>
+        <input type="text" class="f-x_url" value="${escAttr(item.x_url || '')}" placeholder="https://x.com/user/status/123...">
+        <p class="hint">貼上連結後，若 handle 空白會自動填入 @</p>
         <div class="row">
-          <div><label>時間</label><input type="text" class="f-time" value="${(item.time||'').replace(/"/g,'&quot;')}"></div>
-          <div><label>來源</label><input type="text" class="f-source" value="${(item.source||'').replace(/"/g,'&quot;')}"></div>
+          <div>
+            <label>作者顯示名</label>
+            <input type="text" class="f-author_name" value="${escAttr(item.author_name || '')}" placeholder="例如 Elon Musk">
+          </div>
+          <div>
+            <label>@handle</label>
+            <input type="text" class="f-author_handle" value="${escAttr(handle)}" placeholder="elonmusk">
+          </div>
         </div>
-        <label>摘要</label>
-        <textarea class="f-summary">${item.summary||''}</textarea>
-        <label>配圖（不選則用該分類預設插畫）</label>
+        <div class="row">
+          <div>
+            <label>顯示時間</label>
+            <input type="text" class="f-time_display" value="${escAttr(item.time_display || item.time || '')}" placeholder="今天 14:30">
+          </div>
+          <div>
+            <label>標題（可選，列表用）</label>
+            <input type="text" class="f-title" value="${escAttr(item.title || '')}">
+          </div>
+        </div>
+        <label>中文翻譯（主文，必填）</label>
+        <textarea class="f-translation_zh" style="min-height:90px">${item.translation_zh || item.summary || ''}</textarea>
+        <label>作者頭像 URL（可選）</label>
+        <input type="text" class="f-author_avatar" value="${escAttr(item.author_avatar || '')}" placeholder="https://pbs.twimg.com/...">
+        <label>本站補充（可選，會標「本站補充」）</label>
+        <input type="text" class="f-note" value="${escAttr(item.note || '')}">
+        <label>配圖（可選）</label>
         <input type="file" class="f-image" accept="image/*">
-        <img class="thumb f-image-preview" style="display:${item.image?'block':'none'}" src="${item.image||''}">
-        <div class="checkbox-row">
-          <input type="checkbox" class="f-analysis" ${item.analysis?'checked':''}>
-          <label>標記為「署名分析」</label>
-        </div>
+        <img class="thumb f-image-preview" style="display:${item.image?'block':'none'}" src="${item.image || ''}">
       `;
       list.appendChild(div);
     });
@@ -234,14 +303,36 @@
     const editors = list.querySelectorAll('.card-editor');
     const items = [];
     editors.forEach(div => {
+      const x_url = (div.querySelector('.f-x_url')?.value || '').trim();
+      let handle = (div.querySelector('.f-author_handle')?.value || '').trim().replace(/^@/, '');
+      const parsed = parseXUrl(x_url);
+      if(parsed){
+        if(!handle) handle = parsed.handle;
+      }
+      const translation_zh = div.querySelector('.f-translation_zh')?.value || '';
+      const author_name = div.querySelector('.f-author_name')?.value || '';
+      const time_display = div.querySelector('.f-time_display')?.value || '';
+      const title = div.querySelector('.f-title')?.value || '';
+      const author_avatar = (div.querySelector('.f-author_avatar')?.value || '').trim();
+      const note = div.querySelector('.f-note')?.value || '';
+      const imgPrev = div.querySelector('.f-image-preview');
+      const image = imgPrev?.src && imgPrev.style.display !== 'none' ? imgPrev.src : '';
+      const id = parsed ? ('x_' + parsed.statusId) : (x_url ? ('x_' + btoa(unescape(encodeURIComponent(x_url))).slice(0,16)) : '');
+
       items.push({
-        title: div.querySelector('.f-title')?.value || '',
-        time: div.querySelector('.f-time')?.value || '',
-        source: div.querySelector('.f-source')?.value || '',
-        summary: div.querySelector('.f-summary')?.value || '',
-        analysis: div.querySelector('.f-analysis')?.checked || false,
-        image: div.querySelector('.f-image-preview')?.src && div.querySelector('.f-image-preview').style.display!=='none'
-          ? div.querySelector('.f-image-preview').src : ''
+        id,
+        author_name,
+        author_handle: handle,
+        author_avatar,
+        x_url,
+        posted_at: '',
+        time_display,
+        title,
+        translation_zh,
+        image,
+        tags: [],
+        note,
+        attribution: '轉載自 X'
       });
     });
     CONTENT.categories[currentCat] = items;
@@ -258,6 +349,17 @@
     }
   });
 
+  document.getElementById('cardList').addEventListener('blur', (e) => {
+    if(!e.target.classList.contains('f-x_url')) return;
+    const wrap = e.target.closest('.card-editor');
+    const parsed = parseXUrl(e.target.value);
+    if(!parsed) return;
+    const handleInput = wrap.querySelector('.f-author_handle');
+    if(handleInput && !handleInput.value.trim()){
+      handleInput.value = parsed.handle;
+    }
+  }, true);
+
   document.getElementById('cardList').addEventListener('click', (e) => {
     if(e.target.classList.contains('del')){
       readCardListIntoContent();
@@ -269,7 +371,8 @@
 
   document.getElementById('addCardBtn').addEventListener('click', () => {
     readCardListIntoContent();
-    CONTENT.categories[currentCat].push({ title:'', time:'', source:'', summary:'', analysis:false, image:'' });
+    if(!CONTENT.categories[currentCat]) CONTENT.categories[currentCat] = [];
+    CONTENT.categories[currentCat].push(emptyPost());
     renderCardList();
   });
 
@@ -284,13 +387,29 @@
 
   function api(owner, repo){ return `https://api.github.com/repos/${owner}/${repo}/contents/content.json`; }
 
+  function ensureShape(data){
+    if(!data.meta){
+      data.meta = {
+        site_tagline: '轉載 X 上的重要貼文 · 附中文翻譯',
+        disclaimer: '本站內容為轉載與中文翻譯，非原創報導。版權歸原作者所有。',
+        updated_at: ''
+      };
+    }
+    if(!data.hero) data.hero = {};
+    if(!data.categories) data.categories = {};
+    ['hk','world','fun','stock','football'].forEach(k => {
+      if(!Array.isArray(data.categories[k])) data.categories[k] = [];
+    });
+    return data;
+  }
+
   async function loadCurrentContent(){
     const statusEl = document.getElementById('loadStatus');
     statusEl.textContent = '載入中…';
     try{
       const res = await fetch(`./content.json?_=${Date.now()}`);
       if(!res.ok) throw new Error('找不到 content.json');
-      CONTENT = await res.json();
+      CONTENT = ensureShape(await res.json());
       fillHeroForm();
       renderCardList();
       statusEl.textContent = '已載入目前內容（' + new Date().toLocaleTimeString('zh-HK') + '）';
@@ -302,8 +421,6 @@
   }
 
   document.getElementById('loadBtn').addEventListener('click', loadCurrentContent);
-
-  // safety: block publishing until a real load has succeeded, and auto-load on page open
   document.getElementById('publishBtn').disabled = true;
   window.addEventListener('load', loadCurrentContent);
 
@@ -317,6 +434,8 @@
 
     readHeroForm();
     readCardListIntoContent();
+    CONTENT.meta = CONTENT.meta || {};
+    CONTENT.meta.updated_at = new Date().toISOString();
 
     btn.disabled = true;
     statusEl.className = '';
@@ -328,7 +447,7 @@
       if(getRes.ok){ const d = await getRes.json(); sha = d.sha; }
 
       const body = {
-        message: '透過編輯後台更新內容',
+        message: '透過編輯後台更新 X 轉載內容',
         content: utf8ToBase64(JSON.stringify(CONTENT, null, 2)),
         branch: 'main'
       };

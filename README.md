@@ -1,79 +1,91 @@
-# L News — 獨立新聞觀察（自動更新版）
+# L News — 轉載 X 重要貼文
 
-香港本地 + 美股 + 世界 + 足球 新聞網站，專為 **GitHub Pages** 設計。
+香港主題站，專為 **GitHub Pages** 設計。  
+內容以 **轉載 X（Twitter）上的重要貼文** 為主，附中文翻譯，**清楚標示來源，不當成原創**。
 
-## ✨ 新功能（2026-07 升級）
+## 內容形式
 
-| 功能 | 說明 |
+每則卡片顯示：
+
+| 欄位 | 說明 |
 |------|------|
-| **完全自動更新** | GitHub Actions 每 **2 小時** 自動抓取最新中文新聞 |
-| **美股速遞 AUTO** | 新浪財經美股快報 + RTHK 財經，中文原生 |
-| **香港 / 世界 / 足球** | 香港電台 RTHK 官方 RSS（最穩定） |
-| **手動編輯後台** | `editor.html` 繼續可用（適合加 X 熱議、獨家分析） |
-| **X 美股熱議** | 問 Grok「更新美股 X 新聞」→ 即時翻譯 + 來源 → 貼入 editor |
+| 作者 | 顯示名 + `@handle` |
+| 中文翻譯 | 前台主文（只顯示中文） |
+| 時間 | 顯示用時間字串 |
+| 原文連結 | 「查看原文」連到 X |
+| 標示 | 固定「轉載自 X」 |
 
-## 📂 檔案結構
+分類（五類全留）：
+
+- **香港** / **世界** / **趣聞** / **美股** / **足球**  
+- **美股** 專門放美股相關 X 貼文  
+
+**Hero（首頁焦點）** 由你自行用 `editor.html` 維護。
+
+## 檔案結構
 
 ```
 Lnewshk/
-├── index.html          # 主網站
-├── content.json        # 新聞資料（自動 + 手動更新）
-├── editor.html         # 瀏覽器編輯後台（需 GitHub PAT）
-├── update_news.py      # 自動抓新聞腳本
-└── .github/workflows/
-    └── update-news.yml # 定時自動更新
+├── index.html      # 主網站（X 貼文卡片）
+├── content.json    # 資料（手動 / 半自動更新）
+├── editor.html     # 瀏覽器編輯後台（需 GitHub PAT）
+└── README.md
 ```
 
-## 🚀 部署步驟（第一次）
+> 已移除 RSS 自動抓取腳本與 GitHub Actions 定時更新  
+> （X 不適合免費全自動抓取；避免腳本覆寫你的轉載內容）
 
-1. **把本資料夾所有檔案覆蓋你的 repo**  
-   （或直接在 GitHub 上傳 / git push）
+## 部署（第一次）
 
-2. **啟用 GitHub Pages**  
-   - Settings → Pages → Source: Deploy from a branch → `main` / `/ (root)`
+1. 把檔案 push 到 GitHub repo（例如 `Lokhknews/Lnewshk`）
+2. **Settings → Pages** → Deploy from branch → `main` / `/ (root)`
+3. 網站：`https://Lokhknews.github.io/Lnewshk/`
 
-3. **啟用 Actions**（通常預設已開）  
-   - 到 Actions 頁面，如果第一次會問你 enable  
-   - 點 workflow 「自動更新新聞」→ Run workflow（手動測一次）
+## 如何更新內容
 
-4. **完成！**  
-   網站會在 `https://Lokhknews.github.io/Lnewshk/` 自動更新。
+### A. 用 editor.html（推薦）
 
-## 🔄 更新方式
+1. 本地開啟 `editor.html`（或從 Pages 打開同一路徑）
+2. 貼上 GitHub Fine-grained PAT（Contents: Read and write）
+3. 「載入目前網站內容」
+4. 在各分類新增轉載：貼 **X 連結**、填 **作者 / 翻譯 / 時間**
+5. 按「發布更新」
 
-### A. 全自動（推薦）
-- 每 2 小時自動跑
-- 你什麼都不用做
-- 美股、香港、世界、足球 會一直最新
+貼上 `https://x.com/user/status/…` 時，若 handle 空白會自動填入。
 
-### B. 手動觸發
-- 到 GitHub → Actions → 自動更新新聞 → Run workflow
+### B. 半自動（問 Grok）
 
-### C. 加 X 上最新美股討論 / 獨家分析
-1. 對我（Grok）說：  
-   `更新美股X新聞` 或 `幫我抓最新TSLA / AMD / 美股討論，翻譯中文`
-2. 我即刻給你完整的 JSON 文章陣列
-3. 打開 `editor.html`（本地或 GitHub raw）  
-   → 貼入 stock 分類 → 發布更新
+對 Grok 說例如：
 
-### D. 改 Hero 大圖 / 今日熱話
-- 繼續用 `editor.html` 最方便
+> 幫我抓最新美股相關 X 討論（TSLA / NVDA），翻譯成繁中，輸出符合 Lnewshk content.json 的 JSON 陣列
 
-## 📡 新聞來源（全部免費 + 中文優先）
+把結果貼進 `editor.html` 對應分類，或直接改 `content.json` 再 commit。
 
-- **美股**：新浪財經 `usstock.xml` + RTHK 財經
-- **香港**：RTHK 本地新聞 + 政府新聞網
-- **世界**：RTHK 國際 + 大中華
-- **足球 / 體育**：RTHK 體育
-- **趣聞**：Google News 搜尋
+### C. 直接改 content.json
 
-## 💡 進階（可選）
+單則貼文 schema：
 
-- 想改更新頻率：改 `.github/workflows/update-news.yml` 的 cron
-- 想加更多來源：改 `update_news.py` 的 `FEEDS` 字典
-- 想把 X 也全自動：需要 X API 付費方案（目前不推薦）
+```json
+{
+  "id": "x_1234567890",
+  "author_name": "作者顯示名",
+  "author_handle": "handle",
+  "author_avatar": "",
+  "x_url": "https://x.com/handle/status/1234567890",
+  "posted_at": "2026-07-14T12:00:00+08:00",
+  "time_display": "今天 12:00",
+  "title": "可選短標題",
+  "translation_zh": "中文翻譯（主文）",
+  "image": "",
+  "tags": ["美股"],
+  "note": "",
+  "attribution": "轉載自 X"
+}
+```
 
----
+## 注意
 
-有問題直接問我！  
-祝網站越來越有人氣 🚀
+- 本站為**轉載 + 翻譯**，請自行確認轉載／翻譯使用是否符合你的用途與平台規範。
+- 不內建 X API；付費 API 全自動抓取屬進階選項，目前不建議。
+
+有問題直接問 Grok。
