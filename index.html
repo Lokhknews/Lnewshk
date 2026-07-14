@@ -171,6 +171,27 @@
     border-color: var(--ink);
     color: var(--surface);
   }
+  .live-badge{
+    display:inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    background: #22c55e;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+    vertical-align: middle;
+    animation: pulse 2s infinite;
+  }
+  .tab.active .live-badge{
+    background: #4ade80;
+    color: #052e16;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
 
   .grid{
     display:grid;
@@ -328,15 +349,19 @@
     <button class="tab active" data-cat="hk">香港新聞</button>
     <button class="tab" data-cat="world">世界新聞</button>
     <button class="tab" data-cat="fun">趣聞</button>
-    <button class="tab" data-cat="stock">美股速遞</button>
+    <button class="tab" data-cat="stock">美股速遞 <span class="live-badge" title="每 2 小時自動從新浪 + RTHK 更新">AUTO</span></button>
     <button class="tab" data-cat="football">足球</button>
   </div>
 
   <div class="grid" id="grid"></div>
+  <div id="empty-state" style="display:none; text-align:center; padding:60px 20px; color:var(--ink-soft);">
+    <p style="font-size:18px; margin-bottom:8px;">暫時未有新聞</p>
+    <p style="font-size:14px;">系統每 2 小時自動更新，或使用 editor.html 手動添加</p>
+  </div>
 
   <footer>
-    <span>L News © 2026</span>
-    <span>資料每次由編輯後台更新</span>
+    <span>L News © 2026 · 香港前線觀察</span>
+    <span id="last-update">資料自動 + 手動更新 · GitHub Pages</span>
   </footer>
 
 </div>
@@ -408,8 +433,16 @@
   function renderCards(cat){
     currentTab = cat;
     const grid = document.getElementById('grid');
+    const empty = document.getElementById('empty-state');
     grid.innerHTML = '';
     const items = (CONTENT.categories[cat] || []);
+    if(items.length === 0){
+      grid.style.display = 'none';
+      empty.style.display = 'block';
+      return;
+    }
+    grid.style.display = 'grid';
+    empty.style.display = 'none';
     items.forEach((item, i) => {
       const card = document.createElement('div');
       card.className = 'card';
@@ -455,6 +488,11 @@
       CONTENT = data;
       renderHero(data.hero || {});
       renderCards('hk');
+      // 顯示大概更新時間
+      const now = new Date();
+      const opts = { hour: '2-digit', minute: '2-digit', hour12: false };
+      document.getElementById('last-update').textContent = 
+        `自動更新（每2小時）· 本地載入 ${now.toLocaleTimeString('zh-HK', opts)}`;
     })
     .catch(err => {
       document.getElementById('hero-title').textContent = '內容載入失敗，請稍後重試';

@@ -112,8 +112,6 @@
     <div><label>時間</label><input type="text" id="h-time"></div>
     <div><label>來源</label><input type="text" id="h-source"></div>
   </div>
-  <label>原文連結（選填，留空則不顯示「閱讀完整報導」按鈕）</label>
-  <input type="text" id="h-link" placeholder="https://...">
   <label>配圖（不選則用預設插畫）</label>
   <input type="file" id="h-image" accept="image/*">
   <img id="h-image-preview" class="thumb" style="display:none">
@@ -174,7 +172,6 @@
     document.getElementById('h-summary').value = CONTENT.hero.summary || '';
     document.getElementById('h-time').value = CONTENT.hero.time || '';
     document.getElementById('h-source').value = CONTENT.hero.source || '';
-    document.getElementById('h-link').value = CONTENT.hero.link || '';
     const prev = document.getElementById('h-image-preview');
     if(CONTENT.hero.image){ prev.src = CONTENT.hero.image; prev.style.display='block'; }
     else { prev.style.display='none'; }
@@ -186,7 +183,6 @@
     CONTENT.hero.summary = document.getElementById('h-summary').value;
     CONTENT.hero.time = document.getElementById('h-time').value;
     CONTENT.hero.source = document.getElementById('h-source').value;
-    CONTENT.hero.link = document.getElementById('h-link').value;
   }
 
   document.getElementById('h-image').addEventListener('change', async (e) => {
@@ -221,8 +217,6 @@
         </div>
         <label>摘要</label>
         <textarea class="f-summary">${item.summary||''}</textarea>
-        <label>原文連結（選填，留空則不顯示「閱讀原文」按鈕）</label>
-        <input type="text" class="f-link" value="${(item.link||'').replace(/"/g,'&quot;')}" placeholder="https://...">
         <label>配圖（不選則用該分類預設插畫）</label>
         <input type="file" class="f-image" accept="image/*">
         <img class="thumb f-image-preview" style="display:${item.image?'block':'none'}" src="${item.image||''}">
@@ -245,7 +239,6 @@
         time: div.querySelector('.f-time')?.value || '',
         source: div.querySelector('.f-source')?.value || '',
         summary: div.querySelector('.f-summary')?.value || '',
-        link: div.querySelector('.f-link')?.value || '',
         analysis: div.querySelector('.f-analysis')?.checked || false,
         image: div.querySelector('.f-image-preview')?.src && div.querySelector('.f-image-preview').style.display!=='none'
           ? div.querySelector('.f-image-preview').src : ''
@@ -276,7 +269,7 @@
 
   document.getElementById('addCardBtn').addEventListener('click', () => {
     readCardListIntoContent();
-    CONTENT.categories[currentCat].push({ title:'', time:'', source:'', summary:'', link:'', analysis:false, image:'' });
+    CONTENT.categories[currentCat].push({ title:'', time:'', source:'', summary:'', analysis:false, image:'' });
     renderCardList();
   });
 
