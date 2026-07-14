@@ -285,9 +285,7 @@
 
   function api(owner, repo){ return `https://api.github.com/repos/${owner}/${repo}/contents/content.json`; }
 
-  document.getElementById('loadBtn').addEventListener('click', async () => {
-    const owner = document.getElementById('owner').value.trim();
-    const repo = document.getElementById('repo').value.trim();
+  async function loadCurrentContent(){
     const statusEl = document.getElementById('loadStatus');
     statusEl.textContent = '載入中…';
     try{
@@ -296,11 +294,19 @@
       CONTENT = await res.json();
       fillHeroForm();
       renderCardList();
-      statusEl.textContent = '已載入目前內容';
+      statusEl.textContent = '已載入目前內容（' + new Date().toLocaleTimeString('zh-HK') + '）';
+      document.getElementById('publishBtn').disabled = false;
     } catch(err){
-      statusEl.textContent = '載入失敗：' + err.message;
+      statusEl.textContent = '載入失敗：' + err.message + '　— 發布已鎖定，避免覆蓋現有內容';
+      document.getElementById('publishBtn').disabled = true;
     }
-  });
+  }
+
+  document.getElementById('loadBtn').addEventListener('click', loadCurrentContent);
+
+  // safety: block publishing until a real load has succeeded, and auto-load on page open
+  document.getElementById('publishBtn').disabled = true;
+  window.addEventListener('load', loadCurrentContent);
 
   document.getElementById('publishBtn').addEventListener('click', async () => {
     const token = document.getElementById('token').value.trim();
