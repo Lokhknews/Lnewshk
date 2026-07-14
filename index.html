@@ -131,6 +131,21 @@
     color: var(--ink-faint);
   }
   .hero-meta .dot{ width:4px; height:4px; border-radius:50%; background: var(--ink-faint); }
+  .hero-btn{
+    display:inline-flex; align-items:center; gap:8px;
+    margin-top: 24px;
+    background: var(--ink);
+    color: var(--surface);
+    font-weight: 600;
+    font-size: 14.5px;
+    padding: 13px 22px;
+    border-radius: 999px;
+    border:none;
+    cursor:pointer;
+    text-decoration:none;
+    transition: transform .15s ease, opacity .15s ease;
+  }
+  .hero-btn:hover{ transform: translateY(-1px); opacity: 0.88; }
 
   .tabs{
     display:flex; gap: 10px;
@@ -232,6 +247,7 @@
     border: none;
     cursor: pointer;
     padding: 0;
+    text-decoration: none;
   }
   .read-link svg{ width:13px; height:13px; transition: transform .15s ease; }
   .read-link:hover svg{ transform: translateX(3px); }
@@ -304,6 +320,7 @@
         <span class="dot"></span>
         <span id="hero-source"></span>
       </div>
+      <div id="hero-btn-wrap"></div>
     </div>
   </section>
 
@@ -380,6 +397,12 @@
     } else {
       art.innerHTML = ART.world;
     }
+    const btnWrap = document.getElementById('hero-btn-wrap');
+    if(hero.link){
+      btnWrap.innerHTML = `<a class="hero-btn" href="${hero.link}" target="_blank" rel="noopener">閱讀完整報導 ${ARROW}</a>`;
+    } else {
+      btnWrap.innerHTML = '';
+    }
   }
 
   function renderCards(cat){
@@ -395,6 +418,9 @@
       const artHtml = item.image
         ? `<img src="${item.image}" alt="">`
         : ART[cat];
+      const linkBtn = item.link
+        ? `<a class="read-link" href="${item.link}" target="_blank" rel="noopener">${item.analysis ? '閱讀全文' : '閱讀原文'} ${ARROW}</a>`
+        : '';
       card.innerHTML = `
         <div class="card-art" style="background:${ART_BG[cat]}">${artHtml}</div>
         <div class="card-body">
@@ -407,7 +433,7 @@
           <p class="excerpt">${item.summary || ''}</p>
           <div class="card-footer">
             <span class="source-label">${item.source || ''}</span>
-            <button class="read-link">閱讀原文 ${ARROW}</button>
+            ${linkBtn}
           </div>
         </div>
       `;
